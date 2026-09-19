@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title><?= htmlspecialchars($title ?? 'No-Code', ENT_QUOTES) ?></title>
+    <style>
+        body { font-family: system-ui, -apple-system, sans-serif; max-width: 1200px;
+               margin: 2rem auto; padding: 1rem; line-height: 1.5; color: #222; }
+        header { border-bottom: 1px solid #eee; padding-bottom: .8rem; margin-bottom: 1.5rem;
+                 display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; }
+        header a { margin-right: 1rem; text-decoration: none; color: #036; }
+        header form { display: inline; }
+        header .user { font-weight: 600; color: #444; }
+        table { border-collapse: collapse; width: 100%; margin-top: 1rem; }
+        th, td { border: 1px solid #ddd; padding: 6px 10px; vertical-align: top; }
+        th { background: #f7f7f7; text-align: left; }
+        pre { margin: 0; font-size: .85rem; white-space: pre-wrap; }
+        form.inline { display: inline; }
+        input, button, select, textarea { font: inherit; padding: 4px 8px; }
+        .msg { padding: 10px 14px; border-radius: 6px; margin: 1rem 0; }
+        .msg.err { background: #ffe5e5; color: #b00020; }
+        .auth-form { max-width: 360px; margin-top: 1rem; }
+        .auth-form label { display: block; margin: .6rem 0 .2rem; font-weight: 600; }
+        .auth-form input { width: 100%; }
+        .auth-form button { margin-top: 1rem; width: 100%; padding: 8px; }
+        .ct-edit-table input[type="text"],
+        .ct-edit-table input:not([type]) { width: 120px; }
+        .ct-edit-table input[size] { width: auto; }
+    </style>
+</head>
+<body>
+<header>
+    <div>
+        <a href="?action=home">🏠 Home</a>
+        <a href="?action=list_index">📋 Списки</a>
+        <a href="?action=content_type_list">🧩 Типы</a>
+        <a href="?action=home&format=json">JSON API</a>
+    </div>
+    <div>
+        <?php if (!empty($user)): ?>
+            <span class="user">👤 <?= htmlspecialchars($user['name'] ?? '', ENT_QUOTES) ?></span>
+            <form method="post" action="?action=logout">
+                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf, ENT_QUOTES) ?>">
+                <button type="submit">Выйти</button>
+            </form>
+        <?php else: ?>
+            <a href="?action=login">Вход</a>
+            <a href="?action=register">Регистрация</a>
+        <?php endif; ?>
+    </div>
+</header>
+<main><?= $contentHtml ?? '' ?></main>
+</body>
+</html>

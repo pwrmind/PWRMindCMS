@@ -1,0 +1,47 @@
+<h1><?= htmlspecialchars($list['name'] ?? $listId, ENT_QUOTES) ?></h1>
+
+<?php if (!empty($list['description'])): ?>
+    <p><?= htmlspecialchars($list['description'], ENT_QUOTES) ?></p>
+<?php endif; ?>
+
+<p>
+    <small>
+        Тип контента:
+        <a href="?action=content_type_edit&id=<?= urlencode($list['content_type_id']) ?>"><?= htmlspecialchars($list['content_type_name'] ?? $list['content_type_id'], ENT_QUOTES) ?></a>
+        · ID: <code><?= htmlspecialchars($listId, ENT_QUOTES) ?></code>
+        · <a href="?action=list_edit&id=<?= urlencode($listId) ?>">настройки списка</a>
+    </small>
+</p>
+
+<form method="get" style="margin-bottom: 1rem;">
+    <input type="hidden" name="action" value="entity_list">
+    <input type="hidden" name="list_id" value="<?= htmlspecialchars($listId, ENT_QUOTES) ?>">
+    <input name="filter_field" placeholder="field" value="<?= htmlspecialchars($filterField ?? '', ENT_QUOTES) ?>">
+    <input name="filter_value" placeholder="value" value="<?= htmlspecialchars($filterValue ?? '', ENT_QUOTES) ?>">
+    <button type="submit">Фильтр</button>
+</form>
+
+<?php if (empty($items)): ?>
+    <p><em>Нет элементов, подходящих под условия.</em></p>
+<?php else: ?>
+    <table>
+        <tr><th>ID</th><th>Поля (JSON)</th><th>Создан</th><th></th></tr>
+        <?php foreach ($items as $it): ?>
+            <tr>
+                <td><?= htmlspecialchars($it['id'], ENT_QUOTES) ?></td>
+                <td><pre><?= htmlspecialchars(json_encode($it['fields'], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT), ENT_QUOTES) ?></pre></td>
+                <td><?= htmlspecialchars($it['created_at'], ENT_QUOTES) ?></td>
+                <td>
+                    <a href="?action=entity_lookup&from_id=<?= urlencode($it['id']) ?>">связи</a>
+                    <form class="inline" method="post" action="?action=delete_entity_item">
+                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf, ENT_QUOTES) ?>">
+                        <input type="hidden" name="id" value="<?= htmlspecialchars($it['id'], ENT_QUOTES) ?>">
+                        <button type="submit">Удалить</button>
+                    </form>
+                </td>
+            </tr>
+        <?php endforeach; ?>
+    </table>
+<?php endif; ?>
+
+<p style="margin-top: 2rem;"><a href="?action=list_index">← К списку</a></p>

@@ -1,0 +1,39 @@
+<h1>Типы контента</h1>
+<p><a href="?action=content_type_edit">+ Создать новый</a></p>
+
+<?php if (empty($types)): ?>
+    <p><em>Пока нет ни одного типа.</em></p>
+<?php else: ?>
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th><th>Название</th>
+                <th>Полей</th><th>Обязательных</th>
+                <th>Использований</th><th>Создан</th><th></th>
+            </tr>
+        </thead>
+        <tbody>
+            <?php foreach ($types as $t): ?>
+                <tr>
+                    <td><code><?= htmlspecialchars($t['id'], ENT_QUOTES) ?></code></td>
+                    <td><?= htmlspecialchars($t['name'], ENT_QUOTES) ?></td>
+                    <td><?= (int)$t['field_count'] ?></td>
+                    <td><?= (int)$t['required_count'] ?></td>
+                    <td><?= (int)$t['usage_count'] ?></td>
+                    <td><?= htmlspecialchars($t['created_at'], ENT_QUOTES) ?></td>
+                    <td>
+                        <a href="?action=content_type_edit&id=<?= urlencode($t['id']) ?>">Изменить</a>
+                        <form class="inline" method="post" action="?action=content_type_delete"
+                              onsubmit="return confirm('Удалить тип <?= htmlspecialchars($t['id'], ENT_QUOTES) ?>?')">
+                            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf, ENT_QUOTES) ?>">
+                            <input type="hidden" name="id" value="<?= htmlspecialchars($t['id'], ENT_QUOTES) ?>">
+                            <button type="submit">Удалить</button>
+                        </form>
+                    </td>
+                </tr>
+            <?php endforeach; ?>
+        </tbody>
+    </table>
+<?php endif; ?>
+
+<p style="margin-top: 1.5rem;"><a href="?action=home">← На главную</a></p>

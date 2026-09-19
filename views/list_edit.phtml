@@ -1,0 +1,62 @@
+<h1><?= $mode === 'edit' ? 'Редактирование списка' : 'Новый список' ?></h1>
+
+<?php if (!empty($error)): ?>
+    <div class="msg err"><?= htmlspecialchars($error, ENT_QUOTES) ?></div>
+<?php endif; ?>
+
+<form method="post" action="?action=list_edit">
+    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf, ENT_QUOTES) ?>">
+
+    <p>
+        <label>ID:
+            <?php if ($mode === 'edit'): ?>
+                <code><?= htmlspecialchars($id, ENT_QUOTES) ?></code>
+                <input type="hidden" name="id" value="<?= htmlspecialchars($id, ENT_QUOTES) ?>">
+            <?php else: ?>
+                <input type="text" name="id" required pattern="[a-zA-Z0-9_\-]{2,64}"
+                       value="<?= htmlspecialchars($id, ENT_QUOTES) ?>"
+                       placeholder="legal_contracts">
+            <?php endif; ?>
+        </label>
+    </p>
+
+    <p>
+        <label>Название:
+            <input type="text" name="name" required
+                   value="<?= htmlspecialchars($name, ENT_QUOTES) ?>"
+                   placeholder="Юридические договоры">
+        </label>
+    </p>
+
+    <p>
+        <label>Описание:<br>
+            <textarea name="description" rows="3" cols="60"><?= htmlspecialchars($description, ENT_QUOTES) ?></textarea>
+        </label>
+    </p>
+
+    <p>
+        <label>Тип контента:
+            <?php if ($mode === 'edit' && !empty($hasItems)): ?>
+                <code><?= htmlspecialchars($content_type_id, ENT_QUOTES) ?></code>
+                <input type="hidden" name="content_type_id" value="<?= htmlspecialchars($content_type_id, ENT_QUOTES) ?>">
+                <br><small>Тип нельзя сменить: в списке есть элементы.</small>
+            <?php else: ?>
+                <select name="content_type_id" required>
+                    <option value="">— выберите —</option>
+                    <?php foreach ($contentTypes as $ct): ?>
+                        <option value="<?= htmlspecialchars($ct['id'], ENT_QUOTES) ?>"
+                            <?= $ct['id'] === $content_type_id ? 'selected' : '' ?>>
+                            <?= htmlspecialchars($ct['name'], ENT_QUOTES) ?>
+                            (<?= htmlspecialchars($ct['id'], ENT_QUOTES) ?>)
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            <?php endif; ?>
+        </label>
+    </p>
+
+    <p>
+        <button type="submit">Сохранить</button>
+        <a href="?action=list_index">Отмена</a>
+    </p>
+</form>

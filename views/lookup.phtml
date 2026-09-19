@@ -1,0 +1,24 @@
+<h1>Связи: <?= htmlspecialchars($fromId, ENT_QUOTES) ?></h1>
+
+<?php if ($fieldName !== ''): ?>
+    <p>Фильтр по полю: <code><?= htmlspecialchars($fieldName, ENT_QUOTES) ?></code></p>
+<?php endif; ?>
+
+<?php if (empty($items)): ?>
+    <p><em>Связей нет.</em></p>
+<?php else: ?>
+    <table>
+        <tr><th>Link ID</th><th>Field</th><th>Item ID</th><th>List</th><th>Поля (JSON)</th></tr>
+        <?php foreach ($items as $it): ?>
+            <tr>
+                <td><?= htmlspecialchars($it['link_id'], ENT_QUOTES) ?></td>
+                <td><?= htmlspecialchars($it['field_name'], ENT_QUOTES) ?></td>
+                <td><?= htmlspecialchars($it['id'], ENT_QUOTES) ?></td>
+                <td><?= htmlspecialchars($it['list_id'], ENT_QUOTES) ?></td>
+                <td><pre><?= htmlspecialchars(json_encode($it['fields'], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT), ENT_QUOTES) ?></pre></td>
+            </tr>
+        <?php endforeach; ?>
+    </table>
+<?php endif; ?>
+
+<p style="margin-top: 2rem;"><a href="?action=home">← На главную</a></p>

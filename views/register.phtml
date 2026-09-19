@@ -1,0 +1,18 @@
+<h1>Регистрация</h1>
+
+<?php if (!empty($error)): ?>
+    <div class="msg err"><?= htmlspecialchars($error, ENT_QUOTES) ?></div>
+<?php endif; ?>
+
+<form method="post" action="?action=register" class="auth-form">
+    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf, ENT_QUOTES) ?>">
+    <label>Имя</label>
+    <input type="text" name="name" required minlength="2" autofocus>
+    <label>Email</label>
+    <input type="email" name="email" required>
+    <label>Пароль (минимум 6 символов)</label>
+    <input type="password" name="password" required minlength="6">
+    <button type="submit">Создать аккаунт</button>
+</form>
+
+<p style="margin-top: 1rem;">Уже есть аккаунт? <a href="?action=login">Войти</a></p>

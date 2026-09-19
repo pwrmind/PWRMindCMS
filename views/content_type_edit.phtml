@@ -1,0 +1,104 @@
+<h1><?= $mode === 'edit' ? 'Редактирование типа' : 'Новый тип контента' ?></h1>
+
+<?php if (!empty($error)): ?>
+    <div class="msg err"><?= htmlspecialchars($error, ENT_QUOTES) ?></div>
+<?php endif; ?>
+
+<form method="post" action="?action=content_type_edit">
+    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf, ENT_QUOTES) ?>">
+
+    <p>
+        <label>ID:
+            <?php if ($mode === 'edit'): ?>
+                <code><?= htmlspecialchars($id, ENT_QUOTES) ?></code>
+                <input type="hidden" name="id" value="<?= htmlspecialchars($id, ENT_QUOTES) ?>">
+            <?php else: ?>
+                <input type="text" name="id" required pattern="[a-zA-Z0-9_\-]{2,64}"
+                       value="<?= htmlspecialchars($id, ENT_QUOTES) ?>"
+                       placeholder="contract">
+            <?php endif; ?>
+        </label>
+    </p>
+
+    <p>
+        <label>Название:
+            <input type="text" name="name" required
+                   value="<?= htmlspecialchars($name, ENT_QUOTES) ?>"
+                   placeholder="Договор">
+        </label>
+    </p>
+
+    <h2>Поля</h2>
+    <table class="ct-edit-table">
+        <thead>
+            <tr>
+                <th>Имя</th><th>Тип</th><th>Обяз.</th>
+                <th>Min</th><th>Max</th>
+                <th>Мин.дл.</th><th>Макс.дл.</th>
+                <th>Enum (через запятую)</th><th></th>
+            </tr>
+        </thead>
+        <tbody id="fields-body">
+            <?php
+                $renderRow = function (string $fname, array $rules): void {
+                    $t = $rules['type'] ?? 'string';
+                    ?>
+                    <tr>
+                        <td><input name="fields[][name]" value="<?= htmlspecialchars($fname, ENT_QUOTES) ?>"></td>
+                        <td>
+                            <select name="fields[][type]">
+                                <?php foreach (['string','number','boolean'] as $tp): ?>
+                                    <option value="<?= $tp ?>" <?= $t === $tp ? 'selected' : '' ?>><?= $tp ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </td>
+                        <td><input type="checkbox" name="fields[][required]" value="1"
+                                   <?= !empty($rules['required']) ? 'checked' : '' ?>></td>
+                        <td><input name="fields[][min]" size="5"
+                                   value="<?= htmlspecialchars((string)($rules['min'] ?? ''), ENT_QUOTES) ?>"></td>
+                        <td><input name="fields[][max]" size="5"
+                                   value="<?= htmlspecialchars((string)($rules['max'] ?? ''), ENT_QUOTES) ?>"></td>
+                        <td><input name="fields[][min_length]" size="5"
+                                   value="<?= htmlspecialchars((string)($rules['min_length'] ?? ''), ENT_QUOTES) ?>"></td>
+                        <td><input name="fields[][max_length]" size="5"
+                                   value="<?= htmlspecialchars((string)($rules['max_length'] ?? ''), ENT_QUOTES) ?>"></td>
+                        <td><input name="fields[][enum]" size="18" placeholder="draft,signed"
+                                   value="<?= htmlspecialchars(implode(',', $rules['enum'] ?? []), ENT_QUOTES) ?>"></td>
+                        <td><button type="button" onclick="this.closest('tr').remove()">✕</button></td>
+                    </tr>
+                    <?php
+                };
+
+                foreach ($schema as $fname => $rules) $renderRow((string)$fname, (array)$rules);
+                for ($i = 0; $i < 3; $i++) $renderRow('', []);
+            ?>
+        </tbody>
+    </table>
+
+    <p>
+        <button type="button" onclick="addFieldRow()">+ Добавить поле</button>
+        <button type="submit">Сохранить</button>
+    </p>
+</form>
+
+<script>
+function addFieldRow() {
+    const tbody = document.getElementById('fields-body');
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+        <td><input name="fields[][name]" value=""></td>
+        <td><select name="fields[][type]">
+            <option>string</option><option>number</option><option>boolean</option>
+        </select></td>
+        <td><input type="checkbox" name="fields[][required]" value="1"></td>
+        <td><input name="fields[][min]" size="5"></td>
+        <td><input name="fields[][max]" size="5"></td>
+        <td><input name="fields[][min_length]" size="5"></td>
+        <td><input name="fields[][max_length]" size="5"></td>
+        <td><input name="fields[][enum]" size="18" placeholder="draft,signed"></td>
+        <td><button type="button" onclick="this.closest('tr').remove()">✕</button></td>`;
+    tbody.appendChild(tr);
+}
+</script>
+
+<p style="margin-top: 1rem;"><a href="?action=content_type_list">← К списку типов</a></p>

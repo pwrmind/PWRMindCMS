@@ -1,0 +1,16 @@
+<h1>Вход</h1>
+
+<?php if (!empty($error)): ?>
+    <div class="msg err"><?= htmlspecialchars($error, ENT_QUOTES) ?></div>
+<?php endif; ?>
+
+<form method="post" action="?action=login" class="auth-form">
+    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf, ENT_QUOTES) ?>">
+    <label>Email</label>
+    <input type="email" name="email" required autofocus>
+    <label>Пароль</label>
+    <input type="password" name="password" required>
+    <button type="submit">Войти</button>
+</form>
+
+<p style="margin-top: 1rem;">Нет аккаунта? <a href="?action=register">Зарегистрироваться</a></p>

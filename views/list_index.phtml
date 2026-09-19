@@ -1,0 +1,38 @@
+<h1>Списки</h1>
+<p><a href="?action=list_edit">+ Создать список</a></p>
+
+<?php if (empty($lists)): ?>
+    <p><em>Пока нет ни одного списка. <a href="?action=list_edit">Создать первый</a>.</em></p>
+<?php else: ?>
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th><th>Название</th><th>Тип контента</th>
+                <th>Элементов</th><th>Описание</th><th>Создан</th><th></th>
+            </tr>
+        </thead>
+        <tbody>
+            <?php foreach ($lists as $l): ?>
+                <tr>
+                    <td><code><?= htmlspecialchars($l['id'], ENT_QUOTES) ?></code></td>
+                    <td><a href="?action=entity_list&list_id=<?= urlencode($l['id']) ?>"><?= htmlspecialchars($l['name'], ENT_QUOTES) ?></a></td>
+                    <td><?= htmlspecialchars($l['content_type_name'] ?? $l['content_type_id'], ENT_QUOTES) ?></td>
+                    <td><?= (int)$l['item_count'] ?></td>
+                    <td><?= htmlspecialchars($l['description'] ?? '', ENT_QUOTES) ?></td>
+                    <td><?= htmlspecialchars($l['created_at'], ENT_QUOTES) ?></td>
+                    <td>
+                        <a href="?action=list_edit&id=<?= urlencode($l['id']) ?>">Изменить</a>
+                        <form class="inline" method="post" action="?action=list_delete"
+                              onsubmit="return confirm('Удалить список <?= htmlspecialchars($l['id'], ENT_QUOTES) ?>?')">
+                            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf, ENT_QUOTES) ?>">
+                            <input type="hidden" name="id" value="<?= htmlspecialchars($l['id'], ENT_QUOTES) ?>">
+                            <button type="submit">Удалить</button>
+                        </form>
+                    </td>
+                </tr>
+            <?php endforeach; ?>
+        </tbody>
+    </table>
+<?php endif; ?>
+
+<p style="margin-top: 1.5rem;"><a href="?action=home">← На главную</a></p>
