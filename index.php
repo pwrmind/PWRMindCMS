@@ -29,7 +29,7 @@ if (php_sapi_name() === 'cli-server') {
 // =========================================================================
 define('APP_ENV', getenv('APP_ENV') ?: 'dev');
 define('IS_CLI', php_sapi_name() === 'cli');
-define('ENGINE_VERSION', '1.6.0');
+define('ENGINE_VERSION', '1.7.0');
 const TEST_REDIRECT_PREFIX = '__REDIRECT__:';
 const APP_SESSION_VERSION  = 'nocode-v1';
 
@@ -55,7 +55,7 @@ $CONFIG = [
 (static function (): void {
     $required = [
         '_layout', 'error', 'home',
-        'entity_list', 'login', 'register', 'lookup',
+        'entity_list', 'entity_item_edit', 'login', 'register', 'lookup',
         'content_type_list', 'content_type_edit',
         'list_index', 'list_edit',
     ];
@@ -267,7 +267,7 @@ final class DomainResult
         private string $error = ''
     ) {}
     public static function success(mixed $data = null): self { return new self(true, $data); }
-    public static function failure(string $error): self { return new self(false, null, $error); }
+    public static function failure(string $error, mixed $data = null): self { return new self(false, $data, $error); }
     public function isSuccess(): bool { return $this->success; }
     public function isFailure(): bool { return !$this->success; }
     public function getData(): mixed { return $this->data; }
@@ -1698,7 +1698,7 @@ $features = [
             $schema = json_decode((string)$schemaRaw, true) ?: [];
 
             $errors = NoCode::validate($fields, $schema);
-            if ($errors) return DomainResult::failure(implode(' ', $errors));
+            if ($errors) return DomainResult::failure(implode(' ', $errors), ['fields' => $fields, 'list_id' => $listId, 'item_id' => $itemId]);
 
             $now   = date('Y-m-d H:i:s');
             $isNew = ($itemId === '');
@@ -1714,7 +1714,7 @@ $features = [
                 $check = $db->pdo->prepare("SELECT id FROM entity_items WHERE id = ? AND list_id = ?");
                 $check->execute([$itemId, $listId]);
                 if (!$check->fetchColumn()) {
-                    return DomainResult::failure('Элемент не найден в указанном списке.');
+                    return DomainResult::failure('Элемент не найден в указанном списке.', ['fields' => $fields, 'list_id' => $listId, 'item_id' => $itemId]);
                 }
                 $stmt = $db->pdo->prepare("UPDATE entity_items
                     SET data_json = ?, content_type_id = ?, updated_at = ?
@@ -1733,7 +1733,12 @@ $features = [
                     : Json::render($result->getData());
             }
             if ($result->isFailure()) {
-                return Layout::error(400, 'Ошибка валидации элемента', $result->getError());
+                // При ошибке валидации возвращаем форму с данными
+                $data = $result->getData();
+                $fields = $data['fields'] ?? [];
+                $listId = $data['list_id'] ?? '';
+                $itemId = $data['item_id'] ?? '';
+                return $this->redirect('?action=entity_item_edit&list_id=' . urlencode($listId) . '&item_id=' . urlencode($itemId) . '&error=' . urlencode($result->getError()));
             }
             $listId = (string)($request['POST']['list_id'] ?? '');
             return $this->redirect('?action=entity_list&list_id=' . urlencode($listId));
@@ -2020,6 +2025,123 @@ $features = [
             if ($r->isSuccess()) throw new RuntimeException('delete: удаление несуществующего прошло.');
 
             echo "[PASS] delete_entity_item\n";
+        }
+    },
+
+    // ---------------------------------------------------------------------
+    // ENTITY_ITEM_EDIT
+    // ---------------------------------------------------------------------
+    'entity_item_edit' => new class extends BaseAdrSlice {
+        public function domain(Db $db, array $config, array $request): DomainResult
+        {
+            $method = $request['METHOD'] ?? 'GET';
+            $g      = $request['GET'] ?? [];
+            $p      = $request['POST'] ?? [];
+
+            $listId  = trim((string)($g['list_id'] ?? $p['list_id'] ?? ''));
+            $itemId  = trim((string)($g['item_id'] ?? $p['item_id'] ?? ''));
+            $error   = (string)($g['error'] ?? '');
+
+            if ($listId === '') {
+                return DomainResult::failure('Параметр list_id обязателен.');
+            }
+
+            // Метаданные списка и схема
+            $stmt = $db->pdo->prepare("
+                SELECT l.id, l.name AS list_name, l.description, l.content_type_id,
+                       ct.name AS content_type_name, ct.schema_json
+                FROM entity_lists l
+                LEFT JOIN content_types ct ON ct.id = l.content_type_id
+                WHERE l.id = ?
+            ");
+            $stmt->execute([$listId]);
+            $list = $stmt->fetch();
+            if (!$list) {
+                return DomainResult::failure("Список '{$listId}' не найден.");
+            }
+            $schema = $list['schema_json'] ? (json_decode((string)$list['schema_json'], true) ?: []) : [];
+            unset($list['schema_json']);
+
+            // Данные элемента (если редактирование)
+            $fields = [];
+            $isEdit = false;
+            if ($itemId !== '') {
+                $stmt = $db->pdo->prepare("SELECT data_json FROM entity_items WHERE id = ? AND list_id = ?");
+                $stmt->execute([$itemId, $listId]);
+                $row = $stmt->fetch();
+                if ($row) {
+                    $isEdit = true;
+                    $fields = json_decode((string)$row['data_json'], true) ?: [];
+                }
+            }
+
+            // Если POST — данные из формы (для возврата при ошибке валидации через save_entity_item)
+            if ($method === 'POST' && isset($p['fields']) && is_array($p['fields'])) {
+                $fields = $p['fields'];
+            }
+
+            return DomainResult::success([
+                'list'          => $list,
+                'list_id'       => $listId,
+                'item_id'       => $itemId,
+                'is_edit'       => $isEdit,
+                'fields'        => $fields,
+                'schema'        => $schema,
+                'error'         => $error,
+            ]);
+        }
+
+        public function response(DomainResult $result, array $config, array $request): string
+        {
+            if (self::wantsJson($request)) {
+                return $result->isFailure()
+                    ? Json::error($result->getError(), 404)
+                    : Json::render($result->getData());
+            }
+            if ($result->isFailure()) {
+                return Layout::error(404, 'Не найдено', $result->getError());
+            }
+            $d = $result->getData();
+            $content = $this->renderView('entity_item_edit', [
+                'list'     => $d['list'],
+                'listId'   => $d['list_id'],
+                'itemId'   => $d['item_id'],
+                'isEdit'   => $d['is_edit'],
+                'fields'   => $d['fields'],
+                'schema'   => $d['schema'],
+                'error'    => $d['error'],
+                'csrf'     => Csrf::token(),
+            ]);
+            $title = ($d['is_edit'] ? 'Изменить элемент' : 'Создать элемент') . ' · ' . ($d['list']['name'] ?? $d['list_id']);
+            return Layout::render($title, $content);
+        }
+
+        public function runTests(Db $db, array $config): void
+        {
+            $t = Db::inMemory();
+            $t->pdo->exec("INSERT INTO content_types (id, name, schema_json, created_at)
+                VALUES ('todo', 'Задача', '{\"title\":{\"type\":\"string\",\"required\":true},\"done\":{\"type\":\"boolean\"}}', 'now')");
+            $t->pdo->exec("INSERT INTO entity_lists (id, name, description, content_type_id, created_at)
+                VALUES ('tasks', 'Задачи', 'Мои задачи', 'todo', 'now')");
+            $t->pdo->exec("INSERT INTO entity_items (id, list_id, content_type_id, data_json, created_at, updated_at)
+                VALUES ('i1', 'tasks', 'todo', '{\"title\":\"Task 1\",\"done\":false}', 'now', 'now')");
+
+            // Создание: GET форма
+            $r = $this->domain($t, $config, ['METHOD' => 'GET', 'GET' => ['list_id' => 'tasks']]);
+            if ($r->isFailure()) throw new RuntimeException('entity_item_edit: GET для создания не удалось.');
+            if ($r->getData()['is_edit'] !== false) throw new RuntimeException('entity_item_edit: is_edit должен быть false.');
+
+            // Редактирование: GET форма
+            $r = $this->domain($t, $config, ['METHOD' => 'GET', 'GET' => ['list_id' => 'tasks', 'item_id' => 'i1']]);
+            if ($r->isFailure()) throw new RuntimeException('entity_item_edit: GET для редактирования не удалось.');
+            if ($r->getData()['is_edit'] !== true) throw new RuntimeException('entity_item_edit: is_edit должен быть true.');
+            if (($r->getData()['fields']['title'] ?? null) !== 'Task 1') throw new RuntimeException('entity_item_edit: данные элемента не подтянулись.');
+
+            // Несуществующий список
+            $r = $this->domain($t, $config, ['METHOD' => 'GET', 'GET' => ['list_id' => 'nonexistent']]);
+            if ($r->isSuccess()) throw new RuntimeException('entity_item_edit: несуществующий список прошёл.');
+
+            echo "[PASS] entity_item_edit\n";
         }
     },
 
