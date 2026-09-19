@@ -10,6 +10,7 @@
         <a href="?action=content_type_edit&id=<?= urlencode($list['content_type_id']) ?>"><?= htmlspecialchars($list['content_type_name'] ?? $list['content_type_id'], ENT_QUOTES) ?></a>
         · ID: <code><?= htmlspecialchars($listId, ENT_QUOTES) ?></code>
         · <a href="?action=list_edit&id=<?= urlencode($listId) ?>">настройки списка</a>
+        · <a href="?action=entity_item_edit&list_id=<?= urlencode($listId) ?>"><strong>+ Создать элемент</strong></a>
     </small>
 </p>
 
@@ -32,7 +33,8 @@
                 <td><pre><?= htmlspecialchars(json_encode($it['fields'], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT), ENT_QUOTES) ?></pre></td>
                 <td><?= htmlspecialchars($it['created_at'], ENT_QUOTES) ?></td>
                 <td>
-                    <a href="?action=entity_lookup&from_id=<?= urlencode($it['id']) ?>">связи</a>
+                    <a href="?action=entity_item_edit&list_id=<?= urlencode($listId) ?>&item_id=<?= urlencode($it['id']) ?>">Изменить</a>
+                    · <a href="?action=entity_lookup&from_id=<?= urlencode($it['id']) ?>">связи</a>
                     <form class="inline" method="post" action="?action=delete_entity_item">
                         <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf, ENT_QUOTES) ?>">
                         <input type="hidden" name="id" value="<?= htmlspecialchars($it['id'], ENT_QUOTES) ?>">

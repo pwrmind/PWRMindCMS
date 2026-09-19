@@ -1,0 +1,75 @@
+<h1><?= $isEdit ? 'Изменить элемент' : 'Создать элемент' ?></h1>
+
+<p>
+    <small>
+        Список: <a href="?action=entity_list&list_id=<?= urlencode($listId) ?>"><?= htmlspecialchars($list['name'] ?? $listId, ENT_QUOTES) ?></a>
+        · Тип контента: <?= htmlspecialchars($list['content_type_name'] ?? $list['content_type_id'] ?? '', ENT_QUOTES) ?>
+    </small>
+</p>
+
+<?php if ($error !== ''): ?>
+    <div style="color: #b00020; margin-bottom: 1rem; padding: 0.5rem; border: 1px solid #b00020; background: #fff0f0;">
+        <?= htmlspecialchars($error, ENT_QUOTES) ?>
+    </div>
+<?php endif; ?>
+
+<form method="post" action="?action=save_entity_item">
+    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf, ENT_QUOTES) ?>">
+    <input type="hidden" name="list_id" value="<?= htmlspecialchars($listId, ENT_QUOTES) ?>">
+    <?php if ($itemId !== ''): ?>
+        <input type="hidden" name="id" value="<?= htmlspecialchars($itemId, ENT_QUOTES) ?>">
+    <?php endif; ?>
+
+    <table style="border-collapse: collapse; width: 100%; max-width: 600px;">
+        <?php foreach ($schema as $fieldName => $rules): ?>
+            <?php
+                $type = $rules['type'] ?? 'string';
+                $value = $fields[$fieldName] ?? '';
+                $label = $rules['label'] ?? $fieldName;
+                $required = !empty($rules['required']) ? ' required' : '';
+                $min = $rules['min'] ?? null;
+                $max = $rules['max'] ?? null;
+                $step = $rules['step'] ?? 'any';
+                $enumValues = $rules['enum'] ?? [];
+            ?>
+            <tr>
+                <td style="padding: 0.5rem; vertical-align: top; text-align: right;">
+                    <label for="field_<?= htmlspecialchars($fieldName, ENT_QUOTES) ?>">
+                        <?= htmlspecialchars($label, ENT_QUOTES) ?>
+                        <?php if (!empty($rules['required'])): ?><span style="color: #b00020;">*</span><?php endif; ?>
+                    </label>
+                </td>
+                <td style="padding: 0.5rem;">
+                    <?php if ($type === 'boolean'): ?>
+                        <!-- Трюк: hidden + checkbox -->
+                        <input type="hidden" name="fields[<?= htmlspecialchars($fieldName, ENT_QUOTES) ?>]" value="0">
+                        <input type="checkbox" name="fields[<?= htmlspecialchars($fieldName, ENT_QUOTES) ?>]" id="field_<?= htmlspecialchars($fieldName, ENT_QUOTES) ?>" value="1"<?= ($value == 1 || $value === true || $value === 'true') ? ' checked' : '' ?>>
+                    <?php elseif (!empty($enumValues)): ?>
+                        <select name="fields[<?= htmlspecialchars($fieldName, ENT_QUOTES) ?>]" id="field_<?= htmlspecialchars($fieldName, ENT_QUOTES) ?>"<?= $required ?>>
+                            <option value="">— выберите —</option>
+                            <?php foreach ($enumValues as $optVal): ?>
+                                <option value="<?= htmlspecialchars((string)$optVal, ENT_QUOTES) ?>"<?= (string)$value === (string)$optVal ? ' selected' : '' ?>>
+                                    <?= htmlspecialchars((string)$optVal, ENT_QUOTES) ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    <?php elseif ($type === 'number'): ?>
+                        <input type="number" name="fields[<?= htmlspecialchars($fieldName, ENT_QUOTES) ?>]" id="field_<?= htmlspecialchars($fieldName, ENT_QUOTES) ?>" value="<?= htmlspecialchars((string)$value, ENT_QUOTES) ?>"<?= $required ?>
+                            <?php if ($min !== null): ?> min="<?= (float)$min ?>"<?php endif; ?>
+                            <?php if ($max !== null): ?> max="<?= (float)$max ?>"<?php endif; ?>
+                            step="<?= $step ?>">
+                    <?php else: ?>
+                        <input type="text" name="fields[<?= htmlspecialchars($fieldName, ENT_QUOTES) ?>]" id="field_<?= htmlspecialchars($fieldName, ENT_QUOTES) ?>" value="<?= htmlspecialchars((string)$value, ENT_QUOTES) ?>"<?= $required ?>>
+                    <?php endif; ?>
+                </td>
+            </tr>
+        <?php endforeach; ?>
+        <tr>
+            <td></td>
+            <td style="padding-top: 1rem;">
+                <button type="submit"><?= $isEdit ? 'Сохранить изменения' : 'Создать' ?></button>
+                <a href="?action=entity_list&list_id=<?= urlencode($listId) ?>" style="margin-left: 1rem;">Отмена</a>
+            </td>
+        </tr>
+    </table>
+</form>
